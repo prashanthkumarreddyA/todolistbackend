@@ -3,15 +3,22 @@ const { open } = require("sqlite");
 const sqlite3 = require("sqlite3");
 const path = require("path");
 const cors = require("cors");
+const requestIp = require("request-ip");
 
 const databasePath = path.join(__dirname, "todoApplication.db");
 
 const app = express();
 
 app.use(express.json());
-app.use(cors())
+app.use(cors());
+app.use(requestIp.mw());
 
 let database = null;
+
+app.get("/abcd", (req, res) => {
+  const clientIp = req.clientIp;
+  res.send(`Your IP Address is ${clientIp}.`);
+});
 
 const initializeDbAndServer = async () => {
   try {
@@ -20,7 +27,7 @@ const initializeDbAndServer = async () => {
       driver: sqlite3.Database,
     });
 
-    app.listen(9000, () =>
+    app.listen(3009, () =>
       console.log("Server Running at http://localhost:9000/")
     );
   } catch (error) {
@@ -31,7 +38,6 @@ const initializeDbAndServer = async () => {
 
 initializeDbAndServer();
 
-
 app.get("/todos/", async (request, response) => {
   const getTodoQuery = `
     SELECT
@@ -39,7 +45,7 @@ app.get("/todos/", async (request, response) => {
     FROM
       todo`;
   const todos = await database.all(getTodoQuery);
-  response.send({todos});
+  response.send({ todos });
 });
 
 app.get("/todos/:todoId/", async (request, response) => {
@@ -63,16 +69,12 @@ app.post("/todos/", async (request, response) => {
   VALUES
     (${id}, '${todo}', ${isChecked});`;
   await database.run(postTodoQuery);
-  
 });
-
 
 app.put("/todos/:todoId/", async (request, response) => {
   const { todoId } = request.params;
   let updateColumn = "";
-  const {
-    isChecked
-  } = request.body;
+  const { isChecked } = request.body;
   const updateTodoQuery = `
     UPDATE
       todo
@@ -81,7 +83,6 @@ app.put("/todos/:todoId/", async (request, response) => {
     WHERE
       id = ${todoId};`;
   await database.run(updateTodoQuery);
-  
 });
 
 app.delete("/todos/:todoId/", async (request, response) => {
@@ -93,5 +94,4 @@ app.delete("/todos/:todoId/", async (request, response) => {
     id = ${todoId};`;
 
   await database.run(deleteTodoQuery);
-  
 });
